@@ -23,7 +23,7 @@ class SignUpView(CreateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         login(self.request, self.object)
-        messages.success(self.request, 'Welcome to 8K Studio! You have %s trial credits to start.' % self.object.credits_balance)
+        messages.success(self.request, 'Welcome to 8K Studio! Choose a plan to get processing credits.')
         return response
 
 

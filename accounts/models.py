@@ -9,7 +9,7 @@ class User(AbstractUser):
         help_text='Your display name.',
     )
     company_name = models.CharField(max_length=120, blank=True)
-    credits_balance = models.PositiveIntegerField(default=25)
+    credits_balance = models.PositiveIntegerField(default=0)
     plan = models.ForeignKey(
         'billing.Plan', null=True, blank=True, on_delete=models.SET_NULL, related_name='subscribers'
     )
