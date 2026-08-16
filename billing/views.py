@@ -3,14 +3,15 @@ import logging
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .models import CreditTransaction, Plan
+from .models import CreditTransaction, PaymentRequest, Plan
 from .services import adjust_credits
+from .upi import build_upi_uri, render_qr_png
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +20,13 @@ logger = logging.getLogger(__name__)
 def billing_home(request):
     plans = Plan.objects.filter(is_active=True)
     transactions = CreditTransaction.objects.filter(user=request.user)[:25]
+    payment_requests = PaymentRequest.objects.filter(user=request.user)[:10]
     return render(request, 'billing/billing_home.html', {
         'plans': plans,
         'transactions': transactions,
+        'payment_requests': payment_requests,
         'stripe_enabled': bool(settings.STRIPE_PUBLISHABLE_KEY),
+        'upi_enabled': bool(settings.UPI_ID),
     })
 
 
@@ -50,8 +54,11 @@ def checkout(request, slug):
             messages.error(request, f'Payment could not be started: {exc.user_message or exc}')
             return redirect('billing:billing_home')
 
-    # Demo mode: no payment provider configured. Grant the plan's credits
-    # directly so the upgrade flow is fully clickable end-to-end, and say so.
+    if settings.UPI_ID and plan.price_inr > 0:
+        return redirect('billing:upi_checkout', slug=plan.slug)
+
+    # Free plan, or no payment provider configured at all: grant instantly
+    # so the upgrade flow is still fully clickable end-to-end, and say so.
     request.user.plan = plan
     request.user.save(update_fields=['plan'])
     adjust_credits(
@@ -60,8 +67,59 @@ def checkout(request, slug):
     )
     messages.success(
         request,
-        f'Demo mode: connect Stripe to charge real payments. You have been switched to {plan.name} '
+        f'Demo mode: connect Stripe or UPI to charge real payments. You have been switched to {plan.name} '
         f'and granted {plan.monthly_credits} credits.',
+    )
+    return redirect('billing:billing_home')
+
+
+@login_required
+def upi_checkout(request, slug):
+    plan = get_object_or_404(Plan, slug=slug, is_active=True)
+    if not settings.UPI_ID:
+        raise Http404('UPI payments are not configured.')
+    note = f'8K Studio {plan.name} plan'
+    upi_uri = build_upi_uri(plan.price_inr, note)
+    pending = PaymentRequest.objects.filter(
+        user=request.user, plan=plan, status=PaymentRequest.Status.PENDING
+    ).first()
+    return render(request, 'billing/upi_checkout.html', {
+        'plan': plan,
+        'upi_id': settings.UPI_ID,
+        'payee_name': settings.UPI_PAYEE_NAME,
+        'upi_uri': upi_uri,
+        'pending': pending,
+    })
+
+
+@login_required
+def upi_qr_image(request, slug):
+    plan = get_object_or_404(Plan, slug=slug, is_active=True)
+    if not settings.UPI_ID:
+        raise Http404('UPI payments are not configured.')
+    note = f'8K Studio {plan.name} plan'
+    png = render_qr_png(build_upi_uri(plan.price_inr, note))
+    return HttpResponse(png, content_type='image/png')
+
+
+@login_required
+@require_POST
+def upi_submit(request, slug):
+    plan = get_object_or_404(Plan, slug=slug, is_active=True)
+    if not settings.UPI_ID:
+        raise Http404('UPI payments are not configured.')
+    if PaymentRequest.objects.filter(user=request.user, plan=plan, status=PaymentRequest.Status.PENDING).exists():
+        messages.info(request, 'You already have a payment pending review for this plan.')
+        return redirect('billing:upi_checkout', slug=plan.slug)
+
+    PaymentRequest.objects.create(
+        user=request.user, plan=plan, amount_inr=plan.price_inr,
+        upi_ref=request.POST.get('upi_ref', '').strip()[:60],
+    )
+    messages.success(
+        request,
+        f"Thanks! We've received your payment claim for Rs.{plan.price_inr:.0f}. "
+        "An admin will verify it and activate your plan shortly.",
     )
     return redirect('billing:billing_home')
 

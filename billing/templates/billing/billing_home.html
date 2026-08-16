@@ -12,8 +12,22 @@
   </form>
 </div>
 
-{% if not stripe_enabled %}
-  <div class="demo-banner">⚠️ No payment processor is connected (STRIPE_SECRET_KEY not set). Plan upgrades below run in <strong>demo mode</strong>: they instantly switch your plan and grant credits without charging a real card. Connect Stripe to accept real payments.</div>
+{% if upi_enabled %}
+  <div class="demo-banner" style="border-color:rgba(34,197,94,0.3); background:rgba(34,197,94,0.08); color:#86efac;">✅ <strong>UPI payments are live.</strong> Paid plans below show a real scannable QR code + UPI ID at checkout. Payments are verified manually by an admin (usually within minutes) since UPI transfers can't be auto-confirmed without a payment gateway.</div>
+{% elif not stripe_enabled %}
+  <div class="demo-banner">⚠️ No payment processor is connected. Plan upgrades below run in <strong>demo mode</strong>: they instantly switch your plan and grant credits without charging anything. Set <code>UPI_ID</code> or Stripe keys to accept real payments.</div>
+{% endif %}
+
+{% if payment_requests %}
+  <div class="glass card" style="margin-bottom:24px;">
+    <h4 style="margin-top:0;">Your UPI payment requests</h4>
+    {% for pr in payment_requests %}
+      <div class="flex-between" style="padding:10px 0; border-bottom:1px solid var(--panel-border); font-size:0.88rem;">
+        <span>{{ pr.plan.name }} — Rs.{{ pr.amount_inr|floatformat:0 }}{% if pr.upi_ref %} · UTR {{ pr.upi_ref }}{% endif %}</span>
+        <span class="badge badge-{% if pr.status == 'approved' %}completed{% elif pr.status == 'rejected' %}failed{% else %}processing{% endif %}">{{ pr.get_status_display }}</span>
+      </div>
+    {% endfor %}
+  </div>
 {% endif %}
 
 <div class="pricing-grid" style="margin-bottom:40px;">
@@ -22,15 +36,19 @@
       {% if plan == user.plan %}<span class="price-badge">Current plan</span>{% endif %}
       <h3>{{ plan.name }}</h3>
       <p class="text-dim" style="margin-bottom:0;">{{ plan.tagline }}</p>
-      <div class="price-amount">${{ plan.price_usd|floatformat:0 }}<span>/mo</span></div>
+      <div class="price-amount">Rs.{{ plan.price_inr|floatformat:0 }}<span>/mo</span></div>
       <p class="text-faint" style="font-size:0.85rem;">{{ plan.monthly_credits }} credits · up to {{ plan.max_resolution }}</p>
       <ul class="price-features">{% for feature in plan.features %}<li>{{ feature }}</li>{% endfor %}</ul>
-      <form method="post" action="{% url 'billing:checkout' plan.slug %}">
-        {% csrf_token %}
-        <button type="submit" class="btn {% if plan == user.plan %}btn-ghost{% else %}btn-primary{% endif %} btn-block" {% if plan == user.plan %}disabled{% endif %}>
-          {% if plan == user.plan %}Active{% else %}Switch to {{ plan.name }}{% endif %}
-        </button>
-      </form>
+      {% if plan == user.plan %}
+        <button type="button" class="btn btn-ghost btn-block" disabled>Active</button>
+      {% elif upi_enabled and plan.price_inr > 0 %}
+        <a href="{% url 'billing:upi_checkout' plan.slug %}" class="btn btn-primary btn-block">Pay Rs.{{ plan.price_inr|floatformat:0 }} via UPI</a>
+      {% else %}
+        <form method="post" action="{% url 'billing:checkout' plan.slug %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-block">Switch to {{ plan.name }}</button>
+        </form>
+      {% endif %}
     </div>
   {% endfor %}
 </div>

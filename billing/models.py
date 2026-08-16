@@ -6,7 +6,7 @@ class Plan(models.Model):
     name = models.CharField(max_length=60)
     slug = models.SlugField(unique=True)
     tagline = models.CharField(max_length=140, blank=True)
-    price_usd = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    price_inr = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     monthly_credits = models.PositiveIntegerField(default=25)
     max_resolution = models.CharField(max_length=20, default='4K')
     features = models.JSONField(default=list, blank=True)
@@ -16,7 +16,7 @@ class Plan(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ['order', 'price_usd']
+        ordering = ['order', 'price_inr']
 
     def __str__(self):
         return self.name
@@ -45,3 +45,35 @@ class CreditTransaction(models.Model):
 
     def __str__(self):
         return f'{self.user} {self.amount:+d} ({self.reason})'
+
+
+class PaymentRequest(models.Model):
+    """A user's claim of having paid for a plan via UPI. There's no
+    server-side way to verify a raw UPI transfer without a payment-gateway
+    business account, so these are reviewed and approved manually by an
+    admin, who then grants the plan + credits."""
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending review'
+        APPROVED = 'approved', 'Approved'
+        REJECTED = 'rejected', 'Rejected'
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payment_requests')
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name='payment_requests')
+    amount_inr = models.DecimalField(max_digits=8, decimal_places=2)
+    upi_ref = models.CharField(
+        'UPI transaction reference (UTR)', max_length=60, blank=True,
+        help_text='Optional — found in the payment app after sending, speeds up approval.',
+    )
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+',
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user} -> {self.plan} (Rs.{self.amount_inr}) [{self.status}]'

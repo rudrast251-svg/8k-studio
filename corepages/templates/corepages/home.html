@@ -97,14 +97,23 @@
           {% if plan.is_featured %}<span class="price-badge">Most popular</span>{% endif %}
           <h3>{{ plan.name }}</h3>
           <p class="text-dim" style="margin-bottom:0;">{{ plan.tagline }}</p>
-          <div class="price-amount">${{ plan.price_usd|floatformat:0 }}<span>/mo</span></div>
+          <div class="price-amount">Rs.{{ plan.price_inr|floatformat:0 }}<span>/mo</span></div>
           <p class="text-faint" style="font-size:0.85rem;">{{ plan.monthly_credits }} credits · up to {{ plan.max_resolution }}</p>
           <ul class="price-features">
             {% for feature in plan.features %}<li>{{ feature }}</li>{% endfor %}
           </ul>
-          <a href="{% if user.is_authenticated %}{% url 'billing:checkout' plan.slug %}{% else %}{% url 'accounts:sign_up' %}{% endif %}" class="btn {% if plan.is_featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">
-            {% if user.is_authenticated %}Choose {{ plan.name }}{% else %}Get started{% endif %}
-          </a>
+          {% if not user.is_authenticated %}
+            <a href="{% url 'accounts:sign_up' %}" class="btn {% if plan.is_featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">Get started</a>
+          {% elif plan == user.plan %}
+            <button type="button" class="btn btn-ghost btn-block" disabled>Active</button>
+          {% elif upi_enabled and plan.price_inr > 0 %}
+            <a href="{% url 'billing:upi_checkout' plan.slug %}" class="btn {% if plan.is_featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">Pay Rs.{{ plan.price_inr|floatformat:0 }} via UPI</a>
+          {% else %}
+            <form method="post" action="{% url 'billing:checkout' plan.slug %}">
+              {% csrf_token %}
+              <button type="submit" class="btn {% if plan.is_featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">Choose {{ plan.name }}</button>
+            </form>
+          {% endif %}
         </div>
       {% empty %}
         <p class="text-center text-faint">Plans are being configured. Check back soon.</p>

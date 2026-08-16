@@ -150,6 +150,15 @@ STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='')
 STRIPE_PUBLISHABLE_KEY = env('STRIPE_PUBLISHABLE_KEY', default='')
 STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='')
 
+# Manual UPI payments (India). When set, plan checkout shows a real scannable
+# UPI QR code + UPI ID instead of the demo instant-grant flow. Payments are
+# confirmed manually via the admin (Django has no way to verify a UPI
+# transfer server-side without a payment-gateway business account), so the
+# user submits an optional UTR/reference and an admin approves it from
+# /admin/billing/paymentrequest/.
+UPI_ID = env('UPI_ID', default='')
+UPI_PAYEE_NAME = env('UPI_PAYEE_NAME', default='8K Studio')
+
 DEMO_MODE = not bool(REPLICATE_API_TOKEN)
 
 MAX_UPLOAD_SIZE_MB = env.int('MAX_UPLOAD_SIZE_MB', default=500)

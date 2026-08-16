@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import render
 
 from billing.models import Plan
@@ -10,4 +11,5 @@ def home(request):
     return render(request, 'corepages/home.html', {
         'plans': plans,
         'demo_assets': demo_assets,
+        'upi_enabled': bool(settings.UPI_ID),
     })

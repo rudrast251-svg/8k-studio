@@ -82,15 +82,15 @@ class Command(BaseCommand):
     @transaction.atomic
     def _seed_plans(self):
         plans = [
-            dict(slug='free', name='Free', tagline='Try it out', price_usd=0, monthly_credits=25,
-                 max_resolution='4K', order=0, is_featured=False,
+            dict(slug='free', name='Free', tagline='Try it out', price_inr=0, monthly_credits=25,
+                 max_resolution='4K', order=0, is_featured=False, is_active=True,
                  features=['25 credits / month', 'Image + video enhancement', 'Up to 4K upscaling', 'Community support']),
-            dict(slug='pro', name='Pro', tagline='For creators', price_usd=19, monthly_credits=150,
-                 max_resolution='8K', order=1, is_featured=True,
-                 features=['150 credits / month', 'Up to 8K upscaling', 'Priority processing queue', 'Face restoration & background removal', 'Email support']),
-            dict(slug='studio', name='Studio', tagline='For teams', price_usd=49, monthly_credits=500,
-                 max_resolution='8K', order=2, is_featured=False,
-                 features=['500 credits / month', 'Up to 8K upscaling', 'Fastest queue priority', 'Website editor access', 'Priority support']),
+            dict(slug='pro', name='Full Access', tagline='Photos & videos, up to 8K', price_inr=100, monthly_credits=300,
+                 max_resolution='8K', order=1, is_featured=True, is_active=True,
+                 features=['300 credits / month', 'Photo AND video enhancement', 'Up to 8K upscaling', 'Face restoration & background removal', 'Priority processing queue']),
+            dict(slug='studio', name='Studio', tagline='For teams', price_inr=499, monthly_credits=1000,
+                 max_resolution='8K', order=2, is_featured=False, is_active=False,
+                 features=['1000 credits / month', 'Up to 8K upscaling', 'Fastest queue priority', 'Website editor access', 'Priority support']),
         ]
         for data in plans:
             Plan.objects.update_or_create(slug=data['slug'], defaults=data)

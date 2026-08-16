@@ -1,6 +1,7 @@
 from django.db import transaction
+from django.utils import timezone
 
-from .models import CreditTransaction
+from .models import CreditTransaction, PaymentRequest
 
 
 class InsufficientCreditsError(Exception):
@@ -37,3 +38,44 @@ def refund_for_job(user, job):
         user, job.credits_cost, CreditTransaction.Reason.JOB_REFUND, job=job,
         note=f'Refund for failed job #{job.id}',
     )
+
+
+@transaction.atomic
+def approve_payment_request(payment_request: PaymentRequest, reviewer):
+    if payment_request.status != PaymentRequest.Status.PENDING:
+        return payment_request
+    plan = payment_request.plan
+    user = payment_request.user
+    user.plan = plan
+    user.save(update_fields=['plan'])
+    adjust_credits(
+        user, plan.monthly_credits, CreditTransaction.Reason.PURCHASE,
+        note=f'UPI payment approved for {plan.name} (Rs.{payment_request.amount_inr})',
+    )
+    payment_request.status = PaymentRequest.Status.APPROVED
+    payment_request.reviewed_by = reviewer
+    payment_request.reviewed_at = timezone.now()
+    payment_request.save(update_fields=['status', 'reviewed_by', 'reviewed_at'])
+
+    from studio.models import Notification
+    Notification.objects.create(
+        user=user,
+        message=f'Payment of Rs.{payment_request.amount_inr} verified — you are now on the {plan.name} plan with {plan.monthly_credits} credits.',
+    )
+    return payment_request
+
+
+def reject_payment_request(payment_request: PaymentRequest, reviewer):
+    if payment_request.status != PaymentRequest.Status.PENDING:
+        return payment_request
+    payment_request.status = PaymentRequest.Status.REJECTED
+    payment_request.reviewed_by = reviewer
+    payment_request.reviewed_at = timezone.now()
+    payment_request.save(update_fields=['status', 'reviewed_by', 'reviewed_at'])
+
+    from studio.models import Notification
+    Notification.objects.create(
+        user=payment_request.user,
+        message=f"We couldn't verify your Rs.{payment_request.amount_inr} payment for {payment_request.plan.name}. Please contact support or try again.",
+    )
+    return payment_request

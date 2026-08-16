@@ -1,0 +1,44 @@
+{% extends 'studio/dashboard_base.html' %}
+{% block dash_title %}Pay with UPI{% endblock %}
+{% block dash_content %}
+<div class="page-head">
+  <div>
+    <h1>Pay with UPI</h1>
+    <p class="text-dim">{{ plan.name }} plan — Rs.{{ plan.price_inr|floatformat:0 }} / month</p>
+  </div>
+  <a href="{% url 'billing:billing_home' %}" class="btn btn-ghost btn-sm">← Back to plans</a>
+</div>
+
+{% if pending %}
+  <div class="demo-banner">⏳ You already have a Rs.{{ pending.amount_inr|floatformat:0 }} payment submitted on {{ pending.created_at|date:"M j, Y H:i" }} awaiting admin verification. You can submit another below if you paid again, or just wait.</div>
+{% endif %}
+
+<div class="grid-2" style="align-items:flex-start;">
+  <div class="glass card text-center">
+    <h3 style="margin-top:0;">Scan to pay</h3>
+    <img src="{% url 'billing:upi_qr_image' plan.slug %}" alt="UPI QR code" style="width:220px; height:220px; margin:0 auto 16px; border-radius:12px; background:#fff; padding:10px;">
+    <p class="text-dim" style="margin-bottom:4px;">Scan with GPay, PhonePe, Paytm, or any UPI app</p>
+    <a href="{{ upi_uri }}" class="btn btn-primary btn-block" style="margin:14px 0;">📱 Open in UPI app (mobile)</a>
+    <hr class="divider">
+    <div style="text-align:left; font-size:0.9rem;">
+      <p style="margin-bottom:6px;"><strong>UPI ID:</strong> <code>{{ upi_id }}</code></p>
+      <p style="margin-bottom:6px;"><strong>Payee:</strong> {{ payee_name }}</p>
+      <p style="margin-bottom:0;"><strong>Amount:</strong> Rs.{{ plan.price_inr|floatformat:0 }}</p>
+    </div>
+  </div>
+
+  <div class="glass card">
+    <h3 style="margin-top:0;">After you've paid</h3>
+    <p class="text-dim">UPI transfers can't be verified automatically without a payment-gateway business account, so an admin confirms it manually — usually within minutes. Add your transaction reference (UTR) below to speed that up.</p>
+    <form method="post" action="{% url 'billing:upi_submit' plan.slug %}">
+      {% csrf_token %}
+      <div class="field">
+        <label>UPI transaction reference / UTR (optional)</label>
+        <input type="text" name="upi_ref" class="field-input" placeholder="e.g. 402812345678">
+        <div class="field-hint">Found in your payment app's transaction history after paying.</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">✅ I've paid — notify admin</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
