@@ -165,6 +165,12 @@ UPI_PAYEE_NAME = env('UPI_PAYEE_NAME', default='8K Studio')
 
 DEMO_MODE = not bool(REPLICATE_API_TOKEN)
 
+# When no separate background-worker process is available (e.g. Render's
+# free tier only allows a single web service), process jobs synchronously
+# within the request that creates them instead of leaving them stuck in
+# the queue forever.
+PROCESS_JOBS_INLINE = env.bool('PROCESS_JOBS_INLINE', default=False)
+
 MAX_UPLOAD_SIZE_MB = env.int('MAX_UPLOAD_SIZE_MB', default=500)
 ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
 ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.webm']

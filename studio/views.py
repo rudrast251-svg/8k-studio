@@ -1,5 +1,6 @@
 import os
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -11,7 +12,7 @@ from billing.services import InsufficientCreditsError
 from .ai.instructions import humanize_ops
 from .forms import UploadJobForm
 from .models import Asset, Job, Notification
-from .services import create_job, probe_asset
+from .services import create_job, probe_asset, process_job
 from .validation import UploadValidationError, validate_upload
 
 
@@ -55,7 +56,11 @@ def upload(request):
                         return HttpResponseForbidden('You do not have access to this asset.')
 
                 job = create_job(request.user, asset, form.cleaned_data['instruction'])
-                messages.success(request, f'Job #{job.id} queued for processing.')
+                if settings.PROCESS_JOBS_INLINE:
+                    process_job(job)
+                    messages.success(request, f'Job #{job.id} processed.')
+                else:
+                    messages.success(request, f'Job #{job.id} queued for processing.')
                 return redirect('studio:job_detail', pk=job.pk)
             except (UploadValidationError, ValidationError) as exc:
                 messages.error(request, str(exc.message) if hasattr(exc, 'message') else str(exc))

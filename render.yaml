@@ -4,12 +4,21 @@ services:
     runtime: python
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "gunicorn config.wsgi:application"
+    # Render's free plan only allows a web service (no background worker or
+    # cron job), so PROCESS_JOBS_INLINE makes the web process handle each
+    # job synchronously right after upload instead of queuing it for a
+    # worker. --timeout 120 gives video jobs enough room before gunicorn
+    # would otherwise kill the request. If you upgrade to a paid plan and
+    # add the worker service below, you can safely leave this on — the
+    # worker just won't find anything left to do.
+    startCommand: "gunicorn config.wsgi:application --timeout 120"
     envVars:
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
         value: "False"
+      - key: PROCESS_JOBS_INLINE
+        value: "True"
       - key: DATABASE_URL
         fromDatabase:
           name: 8k-studio-db
@@ -51,10 +60,13 @@ services:
       - key: DEFAULT_FROM_EMAIL
         value: "8K Studio <onboarding@resend.dev>"
 
+  # Optional: only deployable on a paid Render plan (free tier is
+  # web-service-only). Not needed if PROCESS_JOBS_INLINE is on above, but
+  # gives faster/non-blocking uploads and true background processing.
   - type: worker
     name: 8k-studio-worker
     runtime: python
-    plan: free
+    plan: starter
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python manage.py process_jobs --loop"
     envVars:
