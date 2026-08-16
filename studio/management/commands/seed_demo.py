@@ -106,8 +106,18 @@ class Command(BaseCommand):
         self.stdout.write('Plans seeded.')
 
     def _seed_demo_assets_and_site(self):
-        config = SiteConfig.load()
-        if not Asset.objects.filter(is_public_demo=True, kind=Asset.Kind.IMAGE).exists():
+        # With a persistent database but ephemeral local disk (no S3/R2
+        # configured), a DB row can outlive the file it points to after a
+        # redeploy wipes local storage -- checking .exists() on the DB
+        # alone isn't enough, since that leaves a phantom Asset whose file
+        # 404s forever. Check the actual storage backend too, and
+        # regenerate if the file is gone even though the row remains.
+        existing_image = Asset.objects.filter(is_public_demo=True, kind=Asset.Kind.IMAGE).first()
+        if existing_image and existing_image.file and existing_image.file.storage.exists(existing_image.file.name):
+            image_asset = existing_image
+        else:
+            if existing_image:
+                existing_image.delete()
             photo_bytes = _make_demo_photo()
             image_asset = Asset(kind=Asset.Kind.IMAGE, source=Asset.Source.DEMO_SAMPLE, is_public_demo=True,
                                  original_name='demo_photo.jpg', label='Demo sample photo', file_size=len(photo_bytes))
@@ -117,11 +127,13 @@ class Command(BaseCommand):
                 image_asset.width, image_asset.height = im.size
             image_asset.save(update_fields=['width', 'height'])
             self.stdout.write('Demo photo generated.')
-        else:
-            image_asset = Asset.objects.filter(is_public_demo=True, kind=Asset.Kind.IMAGE).first()
 
-        video_asset = Asset.objects.filter(is_public_demo=True, kind=Asset.Kind.VIDEO).first()
-        if not video_asset:
+        existing_video = Asset.objects.filter(is_public_demo=True, kind=Asset.Kind.VIDEO).first()
+        if existing_video and existing_video.file and existing_video.file.storage.exists(existing_video.file.name):
+            video_asset = existing_video
+        else:
+            if existing_video:
+                existing_video.delete()
             video_bytes = _make_demo_video()
             if video_bytes:
                 video_asset = Asset(kind=Asset.Kind.VIDEO, source=Asset.Source.DEMO_SAMPLE, is_public_demo=True,
@@ -131,10 +143,24 @@ class Command(BaseCommand):
                 video_asset.save()
                 self.stdout.write('Demo video generated.')
             else:
+                video_asset = None
                 self.stdout.write(self.style.WARNING(
                     'No local video codec available on this host — skipping demo video sample '
                     '(image demo mode and the site still work fine).'
                 ))
+
+        # Loaded only now, after any stale image/video rows above were
+        # deleted -- loading it earlier and holding a stale in-memory
+        # reference to a since-deleted hero asset raises Asset.DoesNotExist
+        # when accessed below, even though SET_NULL already cleared it in
+        # the database itself.
+        config = SiteConfig.load()
+
+        # Also self-heal the hero if it points at a now-missing file.
+        if config.hero_image and not (config.hero_image.file and config.hero_image.file.storage.exists(config.hero_image.file.name)):
+            config.hero_image = None
+        if config.hero_video and not (config.hero_video.file and config.hero_video.file.storage.exists(config.hero_video.file.name)):
+            config.hero_video = None
 
         if not config.hero_video and not config.hero_image:
             if video_asset:
