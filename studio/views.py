@@ -12,7 +12,7 @@ from billing.services import InsufficientCreditsError
 from .ai.instructions import humanize_ops
 from .forms import UploadJobForm
 from .models import Asset, Job, Notification
-from .services import create_job, probe_asset, process_job
+from .services import PlanRestrictionError, create_job, probe_asset, process_job
 from .validation import UploadValidationError, validate_upload
 
 
@@ -64,6 +64,9 @@ def upload(request):
                 return redirect('studio:job_detail', pk=job.pk)
             except (UploadValidationError, ValidationError) as exc:
                 messages.error(request, str(exc.message) if hasattr(exc, 'message') else str(exc))
+            except PlanRestrictionError as exc:
+                messages.error(request, str(exc))
+                return redirect('billing:pricing')
             except InsufficientCreditsError as exc:
                 messages.error(request, str(exc))
                 return redirect('billing:pricing')

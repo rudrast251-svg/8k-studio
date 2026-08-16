@@ -7,7 +7,6 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView
 
-from billing.models import Plan
 from .forms import SignInForm, SignUpForm
 
 
@@ -23,13 +22,8 @@ class SignUpView(CreateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        free_plan = Plan.objects.filter(slug='free').first()
-        if free_plan:
-            self.object.plan = free_plan
-            self.object.credits_balance = free_plan.monthly_credits
-            self.object.save(update_fields=['plan', 'credits_balance'])
         login(self.request, self.object)
-        messages.success(self.request, 'Welcome to 8K Studio! You have %s free credits to start.' % self.object.credits_balance)
+        messages.success(self.request, 'Welcome to 8K Studio! You have %s trial credits to start.' % self.object.credits_balance)
         return response
 
 

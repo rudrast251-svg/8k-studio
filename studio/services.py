@@ -17,6 +17,10 @@ IMAGE_BASE_COST = {'4K': 1, '8K': 2}
 VIDEO_BASE_COST = {'4K': 5, '8K': 10}
 
 
+class PlanRestrictionError(Exception):
+    """Raised when the user's plan doesn't permit the requested job type."""
+
+
 def probe_asset(asset: Asset):
     """Fill in width/height/duration metadata for a freshly-uploaded asset."""
     try:
@@ -59,6 +63,13 @@ def estimate_credits_cost(job_type: str, ops: dict) -> int:
 def create_job(user, asset: Asset, instruction: str) -> Job:
     job_type = Job.JobType.IMAGE_ENHANCE if asset.kind == Asset.Kind.IMAGE else Job.JobType.VIDEO_ENHANCE
     media_kind = 'image' if asset.kind == Asset.Kind.IMAGE else 'video'
+
+    if job_type == Job.JobType.VIDEO_ENHANCE and user.plan and not user.plan.allows_video:
+        raise PlanRestrictionError(
+            f'The {user.plan.name} plan only covers photo enhancement. '
+            'Upgrade to Full Access or Studio to enhance videos.'
+        )
+
     ops = parse_instruction(instruction, media_kind)
     cost = estimate_credits_cost(job_type, ops)
 

@@ -89,17 +89,17 @@ class Command(BaseCommand):
     def _seed_plans(self):
         plans = [
             dict(slug='free', name='Free', tagline='Try it out', price_inr=0, monthly_credits=25,
-                 max_resolution='4K', order=0, is_featured=False, is_active=True,
+                 max_resolution='4K', order=0, is_featured=False, is_active=False, allows_video=True,
                  features=['25 credits / month', 'Image + video enhancement', 'Up to 4K upscaling', 'Community support']),
-            dict(slug='starter', name='Starter', tagline='For casual use', price_inr=49, monthly_credits=100,
-                 max_resolution='4K', order=1, is_featured=False, is_active=True,
-                 features=['100 credits / month', 'Photo AND video enhancement', 'Up to 4K upscaling', 'Email support']),
+            dict(slug='starter', name='Starter', tagline='Photo enhancement', price_inr=49, monthly_credits=100,
+                 max_resolution='4K', order=1, is_featured=False, is_active=True, allows_video=False,
+                 features=['100 credits / month', 'Photo enhancement only', 'Up to 4K upscaling', 'Email support']),
             dict(slug='pro', name='Full Access', tagline='Photos & videos, up to 8K', price_inr=100, monthly_credits=300,
-                 max_resolution='8K', order=2, is_featured=True, is_active=True,
+                 max_resolution='8K', order=2, is_featured=True, is_active=True, allows_video=True,
                  features=['300 credits / month', 'Photo AND video enhancement', 'Up to 8K upscaling', 'Face restoration & background removal', 'Priority processing queue']),
             dict(slug='studio', name='Studio', tagline='For power users & teams', price_inr=199, monthly_credits=700,
-                 max_resolution='8K', order=3, is_featured=False, is_active=True,
-                 features=['700 credits / month', 'Up to 8K upscaling', 'Fastest queue priority', 'Website editor access', 'Priority support']),
+                 max_resolution='8K', order=3, is_featured=False, is_active=True, allows_video=True,
+                 features=['700 credits / month', 'Photo AND video enhancement', 'Up to 8K upscaling', 'Fastest queue priority', 'Website editor access', 'Priority support']),
         ]
         for data in plans:
             Plan.objects.update_or_create(slug=data['slug'], defaults=data)

@@ -10,6 +10,7 @@ class Plan(models.Model):
     monthly_credits = models.PositiveIntegerField(default=25)
     max_resolution = models.CharField(max_length=20, default='4K')
     features = models.JSONField(default=list, blank=True)
+    allows_video = models.BooleanField(default=True, help_text='If off, users on this plan can only enhance images, not video.')
     stripe_price_id = models.CharField(max_length=120, blank=True)
     is_featured = models.BooleanField(default=False)
     order = models.PositiveIntegerField(default=0)
