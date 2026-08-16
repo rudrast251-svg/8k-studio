@@ -1,0 +1,14 @@
+name: Keep 8K Studio awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the live site
+        run: |
+          curl -sS -o /dev/null -w "Status: %{http_code}\n" https://eightk-studio.onrender.com/ || true
