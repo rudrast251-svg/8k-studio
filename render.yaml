@@ -32,18 +32,24 @@ services:
         sync: false
       - key: ADMIN_NOTIFY_EMAIL
         value: rudrast251@gmail.com
+      # Sign up free at resend.com, create an API key, then set
+      # EMAIL_BACKEND to django.core.mail.backends.smtp.EmailBackend and
+      # EMAIL_HOST_PASSWORD to that key in the Render dashboard. Until then
+      # notification emails just log to the service's console output.
       - key: EMAIL_BACKEND
-        value: django.core.mail.backends.smtp.EmailBackend
+        value: django.core.mail.backends.console.EmailBackend
       - key: EMAIL_HOST
-        value: smtp.gmail.com
+        value: smtp.resend.com
       - key: EMAIL_PORT
         value: "587"
       - key: EMAIL_USE_TLS
         value: "True"
       - key: EMAIL_HOST_USER
-        sync: false
+        value: resend
       - key: EMAIL_HOST_PASSWORD
         sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: "8K Studio <onboarding@resend.dev>"
 
   - type: worker
     name: 8k-studio-worker
