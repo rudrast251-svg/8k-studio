@@ -18,10 +18,23 @@ def _client_ip(request):
 
 @receiver(user_logged_in)
 def notify_admin_on_login(sender, request, user, **kwargs):
+    is_new_signup = (timezone.now() - user.created_at).total_seconds() < 15
+    label = 'New signup' if is_new_signup else 'Login'
+
+    # In-app notification (bell icon) — always works, no email setup needed.
+    if not (user.is_staff or user.is_superuser):
+        from studio.models import Notification
+        User = user.__class__
+        for admin in User.objects.filter(is_staff=True):
+            Notification.objects.create(
+                user=admin,
+                message=f'{label}: {user.username or user.email} ({user.email}) from {_client_ip(request)}',
+            )
+
+    # Email notification (optional — needs EMAIL_HOST_PASSWORD configured,
+    # otherwise just logs to the console instead of actually sending).
     if not settings.ADMIN_NOTIFY_EMAIL:
         return
-
-    is_new_signup = (timezone.now() - user.created_at).total_seconds() < 15
     subject = f"{'🆕 New signup' if is_new_signup else '🔐 User login'} — {user.email}"
     body = (
         f"{'A new user just signed up' if is_new_signup else 'A user just logged in'} on 8K Studio.\n\n"
