@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 from billing.models import Plan
 from siteeditor.models import SiteConfig
+from studio.ai.video_codec import open_writer
 from studio.models import Asset
 
 
@@ -48,12 +49,16 @@ def _make_demo_photo() -> bytes:
 
 def _make_demo_video() -> bytes:
     """A short, real, browser-playable H.264 sample clip of animated shapes,
-    used as the default hero video and demo library sample."""
+    used as the default hero video and demo library sample. Returns None if
+    no local video codec is available on this host at all (build continues
+    without a demo video sample rather than failing)."""
     w, h, fps, seconds = 960, 540, 24, 4
     n = fps * seconds
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / 'demo.mp4'
-        writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*'avc1'), fps, (w, h))
+        writer, _codec = open_writer(path, fps, (w, h))
+        if writer is None:
+            return None
         for i in range(n):
             t = i / fps
             frame = np.zeros((h, w, 3), dtype=np.uint8)
@@ -67,7 +72,8 @@ def _make_demo_video() -> bytes:
             cv2.putText(frame, '8K STUDIO', (int(w * 0.28), int(h * 0.9)), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (255, 255, 255), 3, cv2.LINE_AA)
             writer.write(frame)
         writer.release()
-        return path.read_bytes()
+        data = path.read_bytes()
+        return data if data else None
 
 
 class Command(BaseCommand):
@@ -114,16 +120,21 @@ class Command(BaseCommand):
         else:
             image_asset = Asset.objects.filter(is_public_demo=True, kind=Asset.Kind.IMAGE).first()
 
-        if not Asset.objects.filter(is_public_demo=True, kind=Asset.Kind.VIDEO).exists():
+        video_asset = Asset.objects.filter(is_public_demo=True, kind=Asset.Kind.VIDEO).first()
+        if not video_asset:
             video_bytes = _make_demo_video()
-            video_asset = Asset(kind=Asset.Kind.VIDEO, source=Asset.Source.DEMO_SAMPLE, is_public_demo=True,
-                                 original_name='demo_clip.mp4', label='Demo sample clip', file_size=len(video_bytes),
-                                 width=960, height=540, duration_seconds=4.0)
-            video_asset.file.save('demo_clip.mp4', ContentFile(video_bytes), save=False)
-            video_asset.save()
-            self.stdout.write('Demo video generated.')
-        else:
-            video_asset = Asset.objects.filter(is_public_demo=True, kind=Asset.Kind.VIDEO).first()
+            if video_bytes:
+                video_asset = Asset(kind=Asset.Kind.VIDEO, source=Asset.Source.DEMO_SAMPLE, is_public_demo=True,
+                                     original_name='demo_clip.mp4', label='Demo sample clip', file_size=len(video_bytes),
+                                     width=960, height=540, duration_seconds=4.0)
+                video_asset.file.save('demo_clip.mp4', ContentFile(video_bytes), save=False)
+                video_asset.save()
+                self.stdout.write('Demo video generated.')
+            else:
+                self.stdout.write(self.style.WARNING(
+                    'No local video codec available on this host — skipping demo video sample '
+                    '(image demo mode and the site still work fine).'
+                ))
 
         if not config.hero_video and not config.hero_image and video_asset:
             config.hero_video = video_asset

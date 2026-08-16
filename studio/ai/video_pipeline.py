@@ -19,16 +19,11 @@ import numpy as np
 from django.conf import settings
 
 from . import replicate_client
+from .video_codec import open_writer
 
 DEMO_MAX_HEIGHT = 1080
 DEMO_MAX_FRAMES = 400
 UPSCALE_FACTOR = {'4K': 2, '8K': 3}
-
-
-def _open_writer(path, fourcc_name, fps, size):
-    fourcc = cv2.VideoWriter_fourcc(*fourcc_name)
-    writer = cv2.VideoWriter(str(path), fourcc, fps, size)
-    return writer if writer.isOpened() else None
 
 
 def enhance_video_demo(asset, ops: dict) -> tuple[bytes, str, list[str], list[str], dict]:
@@ -133,13 +128,13 @@ def enhance_video_demo(asset, ops: dict) -> tuple[bytes, str, list[str], list[st
             skipped.append(f'Demo mode processed the first {frame_limit} frames only (full video needs a connected AI provider).')
 
         out_path = Path(tmp) / 'output.mp4'
-        writer = _open_writer(out_path, 'avc1', fps, (out_w, out_h))
-        codec_note = 'H.264'
+        writer, codec_used = open_writer(out_path, fps, (out_w, out_h))
         if writer is None:
-            writer = _open_writer(out_path, 'mp4v', fps, (out_w, out_h))
-            codec_note = 'MPEG-4 (fallback)'
-        if writer is None:
-            raise RuntimeError('No local video codec is available to write the output file.')
+            raise RuntimeError(
+                'No local video codec is available on this host to write the output file. '
+                'Connect a real AI provider (REPLICATE_API_TOKEN) for video processing here.'
+            )
+        codec_note = 'H.264' if codec_used == 'avc1' else 'MPEG-4 (fallback)'
         for f in processed:
             writer.write(f)
         writer.release()
