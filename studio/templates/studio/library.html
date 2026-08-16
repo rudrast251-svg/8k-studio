@@ -20,7 +20,7 @@
     {% for asset in assets %}
       <div class="glass asset-card card-hover">
         <div class="thumb">
-          {% if asset.kind == 'image' %}<img src="{{ asset.file.url }}" alt="">{% else %}<video src="{{ asset.file.url }}" muted></video>{% endif %}
+          {% if asset.kind == 'image' %}<img src="{{ asset.file.url }}" alt="">{% else %}<video src="{{ asset.file.url }}" muted preload="metadata"></video>{% endif %}
         </div>
         <div class="meta">
           <b>{{ asset.original_name|default:asset.label|default:"Untitled asset" }}</b>

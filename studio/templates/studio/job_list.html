@@ -20,7 +20,7 @@
   {% for job in jobs %}
     <a href="{% url 'studio:job_detail' job.pk %}" class="glass job-row card-hover">
       <div class="job-thumb">
-        {% if job.input_asset.kind == 'image' %}<img src="{{ job.input_asset.file.url }}" alt="">{% else %}<video src="{{ job.input_asset.file.url }}" muted></video>{% endif %}
+        {% if job.input_asset.kind == 'image' %}<img src="{{ job.input_asset.file.url }}" alt="">{% else %}<video src="{{ job.input_asset.file.url }}" muted preload="metadata"></video>{% endif %}
       </div>
       <div class="job-meta">
         <b>{{ job.get_job_type_display }} #{{ job.id }}</b>

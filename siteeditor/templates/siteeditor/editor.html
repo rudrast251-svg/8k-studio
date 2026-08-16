@@ -29,7 +29,7 @@
             <div class="asset-picker-grid" data-target="#id_asset_id">
               {% for asset in assets %}
                 <div class="asset-thumb" data-asset-id="{{ asset.id }}">
-                  {% if asset.kind == 'image' %}<img src="{{ asset.file.url }}" alt="">{% else %}<video src="{{ asset.file.url }}" muted></video>{% endif %}
+                  {% if asset.kind == 'image' %}<img src="{{ asset.file.url }}" alt="">{% else %}<video src="{{ asset.file.url }}" muted preload="metadata"></video>{% endif %}
                   <span class="kind-badge">{{ asset.kind }}</span>
                 </div>
               {% endfor %}

@@ -28,7 +28,7 @@
         {% if job.input_asset.kind == 'image' %}
           <img src="{{ job.input_asset.file.url }}" alt="">
         {% else %}
-          <video src="{{ job.input_asset.file.url }}" muted></video>
+          <video src="{{ job.input_asset.file.url }}" muted preload="metadata"></video>
         {% endif %}
       </div>
       <div class="job-meta">
