@@ -111,6 +111,10 @@ EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='8K Studio <noreply@8kstudio.app>')
 
+# Every sign-up and login sends a notification email here with the user's
+# details (name, email, plan, IP). Set to '' to disable.
+ADMIN_NOTIFY_EMAIL = env('ADMIN_NOTIFY_EMAIL', default='rudrast251@gmail.com')
+
 # ---------------------------------------------------------------------------
 # Cloud storage (optional). When AWS_STORAGE_BUCKET_NAME is set, uploaded
 # media is stored in S3-compatible object storage instead of local disk.

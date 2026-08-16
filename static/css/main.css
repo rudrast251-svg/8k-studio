@@ -143,7 +143,7 @@ button { font-family: inherit; }
 .feature-grid p { font-size: 0.92rem; margin: 0; }
 
 /* ---------- Pricing ---------- */
-.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: stretch; }
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 22px; align-items: stretch; }
 @media (max-width: 900px) { .pricing-grid { grid-template-columns: 1fr; } }
 .price-card { display: flex; flex-direction: column; position: relative; }
 .price-card.featured { border-color: rgba(var(--violet-rgb), 0.55); box-shadow: var(--shadow-glow); }
