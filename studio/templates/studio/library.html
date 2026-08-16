@@ -1,0 +1,38 @@
+{% extends 'studio/dashboard_base.html' %}
+{% block dash_title %}Asset library{% endblock %}
+{% block dash_content %}
+<div class="page-head">
+  <div>
+    <h1>Asset library</h1>
+    <p class="text-dim">Every upload and enhanced result, ready to reuse anywhere.</p>
+  </div>
+  <a href="{% url 'studio:upload' %}" class="btn btn-primary">+ Upload new</a>
+</div>
+
+<div class="flex gap-8" style="margin-bottom:20px;">
+  <a href="{% url 'studio:library' %}" class="btn btn-sm {% if not kind_filter %}btn-primary{% else %}btn-ghost{% endif %}">All</a>
+  <a href="?kind=image" class="btn btn-sm {% if kind_filter == 'image' %}btn-primary{% else %}btn-ghost{% endif %}">Images</a>
+  <a href="?kind=video" class="btn btn-sm {% if kind_filter == 'video' %}btn-primary{% else %}btn-ghost{% endif %}">Videos</a>
+</div>
+
+{% if assets %}
+  <div class="asset-grid">
+    {% for asset in assets %}
+      <div class="glass asset-card card-hover">
+        <div class="thumb">
+          {% if asset.kind == 'image' %}<img src="{{ asset.file.url }}" alt="">{% else %}<video src="{{ asset.file.url }}" muted></video>{% endif %}
+        </div>
+        <div class="meta">
+          <b>{{ asset.original_name|default:asset.label|default:"Untitled asset" }}</b>
+          <span>{{ asset.get_source_display }} · {{ asset.resolution_label }} · {{ asset.file_size_mb }} MB</span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="glass card empty-state">
+    <div class="dz-icon">📁</div>
+    <p>Your library is empty. Uploaded and enhanced media will appear here.</p>
+  </div>
+{% endif %}
+{% endblock %}

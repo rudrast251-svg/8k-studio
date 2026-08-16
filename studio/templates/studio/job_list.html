@@ -1,0 +1,39 @@
+{% extends 'studio/dashboard_base.html' %}
+{% block dash_title %}Processing queue{% endblock %}
+{% block dash_content %}
+<div class="page-head">
+  <div>
+    <h1>Processing queue</h1>
+    <p class="text-dim">Track every enhancement job from upload to download.</p>
+  </div>
+  <a href="{% url 'studio:upload' %}" class="btn btn-primary">+ New enhancement</a>
+</div>
+
+<div class="flex gap-8" style="margin-bottom:20px; flex-wrap:wrap;">
+  <a href="{% url 'studio:job_list' %}" class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-ghost{% endif %}">All</a>
+  {% for value, label in statuses %}
+    <a href="?status={{ value }}" class="btn btn-sm {% if status_filter == value %}btn-primary{% else %}btn-ghost{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+{% if jobs %}
+  {% for job in jobs %}
+    <a href="{% url 'studio:job_detail' job.pk %}" class="glass job-row card-hover">
+      <div class="job-thumb">
+        {% if job.input_asset.kind == 'image' %}<img src="{{ job.input_asset.file.url }}" alt="">{% else %}<video src="{{ job.input_asset.file.url }}" muted></video>{% endif %}
+      </div>
+      <div class="job-meta">
+        <b>{{ job.get_job_type_display }} #{{ job.id }}</b>
+        <span>{{ job.instruction|truncatechars:70 }}</span>
+      </div>
+      <div class="job-status-col"><span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span></div>
+      <div class="job-actions text-faint" style="font-size:0.8rem;">{{ job.created_at|timesince }} ago · {{ job.credits_cost }} credits</div>
+    </a>
+  {% endfor %}
+{% else %}
+  <div class="glass card empty-state">
+    <div class="dz-icon">🗂️</div>
+    <p>No jobs match this filter yet.</p>
+  </div>
+{% endif %}
+{% endblock %}

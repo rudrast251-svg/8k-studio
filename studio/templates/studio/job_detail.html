@@ -1,0 +1,70 @@
+{% extends 'studio/dashboard_base.html' %}
+{% block dash_title %}Job #{{ job.id }}{% endblock %}
+{% block dash_content %}
+<div class="page-head">
+  <div>
+    <h1>{{ job.get_job_type_display }} #{{ job.id }}</h1>
+    <p class="text-dim">"{{ job.instruction }}"</p>
+  </div>
+  <span class="badge badge-{{ job.status }}" data-job-badge data-status="{{ job.status }}">{{ job.get_status_display }}</span>
+</div>
+
+<div data-job-status-url="{% url 'studio:job_status' job.pk %}"></div>
+
+{% if job.status == 'processing' or job.status == 'uploaded' %}
+  <div class="glass card" style="margin-bottom:24px;">
+    <div class="flex-between"><span>Processing your {{ job.input_asset.kind }}…</span><span data-progress-label>{{ job.progress_percent }}%</span></div>
+    <div class="progress-track"><div class="progress-fill" data-progress-fill style="width:{{ job.progress_percent }}%;"></div></div>
+    <p class="text-faint" style="margin:12px 0 0; font-size:0.82rem;">This page updates automatically — no need to refresh.</p>
+  </div>
+{% endif %}
+
+{% if job.status == 'failed' %}
+  <div class="alert alert-error" style="margin-bottom:24px;">Processing failed: {{ job.error_message }}. Your {{ job.credits_cost }} credits were refunded.</div>
+{% endif %}
+
+<div class="glass card" style="margin-bottom:24px;">
+  <h3 style="margin-top:0;">Requested operations</h3>
+  {% for op in applied_ops %}<span class="op-chip">{{ op }}</span>{% empty %}<p class="text-faint">No specific operations detected — try being more specific in your instruction.</p>{% endfor %}
+  {% if job.status == 'completed' %}
+    <hr class="divider">
+    <h4 style="margin-bottom:10px;">Result</h4>
+    <div>
+      <span class="op-chip">Provider: {{ job.get_provider_display }}</span>
+      {% for note in job.skipped_ops %}<span class="op-chip skipped" title="{{ note }}">⚠ {{ note|truncatechars:50 }}</span>{% endfor %}
+    </div>
+  {% endif %}
+</div>
+
+<div class="compare-grid">
+  <div class="compare-panel">
+    <div class="compare-label">Original</div>
+    {% if job.input_asset.kind == 'image' %}
+      <img src="{{ job.input_asset.file.url }}" alt="Original">
+    {% else %}
+      <video src="{{ job.input_asset.file.url }}" controls></video>
+    {% endif %}
+  </div>
+  <div class="compare-panel">
+    <div class="compare-label">Enhanced {% if job.status != 'completed' %}(pending){% endif %}</div>
+    {% if job.output_asset %}
+      {% if job.output_asset.kind == 'image' %}
+        <img src="{{ job.output_asset.file.url }}" alt="Enhanced">
+      {% else %}
+        <video src="{{ job.output_asset.file.url }}" controls></video>
+      {% endif %}
+    {% else %}
+      <div style="display:flex; align-items:center; justify-content:center; height:260px; color:var(--text-faint);">
+        {% if job.status == 'failed' %}Processing failed{% else %}Waiting for processing to complete…{% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if job.output_asset %}
+  <div style="margin-top:24px;">
+    <a href="{% url 'studio:job_download' job.pk %}" class="btn btn-primary">⬇ Download best available resolution</a>
+    {% if job.output_asset.width %}<span class="text-faint" style="margin-left:12px; font-size:0.85rem;">{{ job.output_asset.resolution_label }}</span>{% endif %}
+  </div>
+{% endif %}
+{% endblock %}

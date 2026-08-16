@@ -1,0 +1,43 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}8K Studio — AI Photo & Video Enhancement{% endblock %}</title>
+  <meta name="description" content="Upload photos and videos and enhance them to 8K with AI — upscale, sharpen, denoise, stabilize, and more.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%238b5cf6%22/><text x=%2250%22 y=%2266%22 font-size=%2246%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22sans-serif%22 font-weight=%22bold%22>8K</text></svg>">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  {% if theme_vars %}
+  <style>
+    :root {
+      --violet: {{ theme_vars.violet }};
+      --blue: {{ theme_vars.blue }};
+      --bg: {{ theme_vars.bg }};
+      --violet-rgb: {{ theme_vars.violet_rgb }};
+      --blue-rgb: {{ theme_vars.blue_rgb }};
+    }
+  </style>
+  {% endif %}
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  {% include 'partials/navbar.html' %}
+
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+
+  {% include 'partials/footer.html' %}
+
+  <div class="made-by-label">Made by Rudra Tiwari</div>
+
+  <script src="{% static 'js/main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

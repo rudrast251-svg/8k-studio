@@ -1,0 +1,58 @@
+{% extends 'studio/dashboard_base.html' %}
+{% block dash_title %}Billing & credits{% endblock %}
+{% block dash_content %}
+<div class="page-head">
+  <div>
+    <h1>Billing & credits</h1>
+    <p class="text-dim">Current plan: <strong>{{ user.plan.name|default:"No plan" }}</strong> · {{ user.credits_balance }} credits available</p>
+  </div>
+  <form method="post" action="{% url 'billing:demo_credit_grant' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-ghost">+10 demo credits</button>
+  </form>
+</div>
+
+{% if not stripe_enabled %}
+  <div class="demo-banner">⚠️ No payment processor is connected (STRIPE_SECRET_KEY not set). Plan upgrades below run in <strong>demo mode</strong>: they instantly switch your plan and grant credits without charging a real card. Connect Stripe to accept real payments.</div>
+{% endif %}
+
+<div class="pricing-grid" style="margin-bottom:40px;">
+  {% for plan in plans %}
+    <div class="glass card price-card {% if plan == user.plan %}featured{% endif %}">
+      {% if plan == user.plan %}<span class="price-badge">Current plan</span>{% endif %}
+      <h3>{{ plan.name }}</h3>
+      <p class="text-dim" style="margin-bottom:0;">{{ plan.tagline }}</p>
+      <div class="price-amount">${{ plan.price_usd|floatformat:0 }}<span>/mo</span></div>
+      <p class="text-faint" style="font-size:0.85rem;">{{ plan.monthly_credits }} credits · up to {{ plan.max_resolution }}</p>
+      <ul class="price-features">{% for feature in plan.features %}<li>{{ feature }}</li>{% endfor %}</ul>
+      <form method="post" action="{% url 'billing:checkout' plan.slug %}">
+        {% csrf_token %}
+        <button type="submit" class="btn {% if plan == user.plan %}btn-ghost{% else %}btn-primary{% endif %} btn-block" {% if plan == user.plan %}disabled{% endif %}>
+          {% if plan == user.plan %}Active{% else %}Switch to {{ plan.name }}{% endif %}
+        </button>
+      </form>
+    </div>
+  {% endfor %}
+</div>
+
+<h3>Credit history</h3>
+{% if transactions %}
+  <div class="glass card" style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.88rem;">
+      <thead><tr style="text-align:left; color:var(--text-faint);"><th style="padding:8px;">Date</th><th style="padding:8px;">Reason</th><th style="padding:8px;">Amount</th><th style="padding:8px;">Balance after</th></tr></thead>
+      <tbody>
+      {% for t in transactions %}
+        <tr style="border-top:1px solid var(--panel-border);">
+          <td style="padding:8px;">{{ t.created_at|date:"M j, Y H:i" }}</td>
+          <td style="padding:8px;">{{ t.get_reason_display }}{% if t.note %} — <span class="text-faint">{{ t.note }}</span>{% endif %}</td>
+          <td style="padding:8px; color:{% if t.amount < 0 %}#f87171{% else %}#4ade80{% endif %};">{{ t.amount|stringformat:"+d" }}</td>
+          <td style="padding:8px;">{{ t.balance_after }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-faint">No credit activity yet.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}{% block dash_title %}Dashboard{% endblock %} — 8K Studio{% endblock %}
+{% block content %}
+<div class="dash-mobile-nav">
+  <a href="{% url 'studio:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Overview</a>
+  <a href="{% url 'studio:upload' %}" class="{% if request.resolver_match.url_name == 'upload' %}active{% endif %}">Upload</a>
+  <a href="{% url 'studio:job_list' %}" class="{% if request.resolver_match.url_name == 'job_list' or request.resolver_match.url_name == 'job_detail' %}active{% endif %}">Jobs</a>
+  <a href="{% url 'studio:library' %}" class="{% if request.resolver_match.url_name == 'library' %}active{% endif %}">Library</a>
+  <a href="{% url 'billing:billing_home' %}" class="{% if 'billing' in request.resolver_match.namespace %}active{% endif %}">Billing</a>
+  {% if user.is_studio_admin %}<a href="{% url 'siteeditor:editor' %}" class="{% if 'siteeditor' in request.resolver_match.namespace %}active{% endif %}">Site Editor</a>{% endif %}
+</div>
+<div class="dash-shell">
+  <aside class="dash-sidebar">
+    <div class="credit-pill">
+      <span>⚡ Credits</span>
+      <b>{{ user.credits_balance }}</b>
+    </div>
+    <nav class="dash-nav">
+      <a href="{% url 'studio:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">📊 Overview</a>
+      <a href="{% url 'studio:upload' %}" class="{% if request.resolver_match.url_name == 'upload' %}active{% endif %}">⬆️ Upload & Enhance</a>
+      <a href="{% url 'studio:job_list' %}" class="{% if request.resolver_match.url_name == 'job_list' or request.resolver_match.url_name == 'job_detail' %}active{% endif %}">🎞️ Processing queue</a>
+      <a href="{% url 'studio:library' %}" class="{% if request.resolver_match.url_name == 'library' %}active{% endif %}">📁 Asset library</a>
+      <a href="{% url 'billing:billing_home' %}" class="{% if 'billing' in request.resolver_match.namespace %}active{% endif %}">💳 Billing & credits</a>
+      <a href="{% url 'accounts:profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">👤 Profile</a>
+      {% if user.is_studio_admin %}
+        <hr class="divider">
+        <a href="{% url 'siteeditor:editor' %}" class="{% if 'siteeditor' in request.resolver_match.namespace %}active{% endif %}">🎨 Site editor</a>
+        <a href="{% url 'admin:index' %}">🛠️ Admin panel</a>
+      {% endif %}
+    </nav>
+  </aside>
+  <main class="dash-content">
+    {% if demo_mode %}
+      <div class="demo-banner">⚠️ <strong>Demo mode active</strong> — no REPLICATE_API_TOKEN is configured, so image/video jobs run on real local processing (Pillow/OpenCV) instead of full neural 8K upscaling. Add the key in <code>.env</code> to enable the real GPU AI provider.</div>
+    {% endif %}
+    {% block dash_content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'studio/dashboard_base.html' %}
+{% block dash_title %}Overview{% endblock %}
+{% block dash_content %}
+<div class="page-head">
+  <div>
+    <h1>Welcome back{% if user.username %}, {{ user.username }}{% endif %}</h1>
+    <p class="text-dim">Here's what's happening with your media.</p>
+  </div>
+  <a href="{% url 'studio:upload' %}" class="btn btn-primary">+ New enhancement</a>
+</div>
+
+<div class="stat-grid">
+  <div class="glass card-sm stat-card"><b>{{ user.credits_balance }}</b><span>Credits remaining</span></div>
+  <div class="glass card-sm stat-card"><b>{{ stats.total_jobs }}</b><span>Total jobs</span></div>
+  <div class="glass card-sm stat-card"><b>{{ stats.processing_jobs }}</b><span>In progress</span></div>
+  <div class="glass card-sm stat-card"><b>{{ stats.asset_count }}</b><span>Assets in library</span></div>
+</div>
+
+<div class="flex-between" style="margin-bottom:16px;">
+  <h3 style="margin:0;">Recent jobs</h3>
+  <a href="{% url 'studio:job_list' %}" class="text-dim" style="font-size:0.85rem;">View all →</a>
+</div>
+
+{% if recent_jobs %}
+  {% for job in recent_jobs %}
+    <a href="{% url 'studio:job_detail' job.pk %}" class="glass job-row card-hover">
+      <div class="job-thumb">
+        {% if job.input_asset.kind == 'image' %}
+          <img src="{{ job.input_asset.file.url }}" alt="">
+        {% else %}
+          <video src="{{ job.input_asset.file.url }}" muted></video>
+        {% endif %}
+      </div>
+      <div class="job-meta">
+        <b>{{ job.get_job_type_display }} #{{ job.id }}</b>
+        <span>{{ job.instruction|truncatechars:60 }}</span>
+      </div>
+      <div class="job-status-col"><span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span></div>
+      <div class="job-actions text-faint" style="font-size:0.8rem;">{{ job.created_at|timesince }} ago</div>
+    </a>
+  {% endfor %}
+{% else %}
+  <div class="glass card empty-state">
+    <div class="dz-icon">🎬</div>
+    <p>No jobs yet. Upload your first photo or video to get started.</p>
+    <a href="{% url 'studio:upload' %}" class="btn btn-primary">Upload media</a>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,102 @@
+import logging
+
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
+from .models import CreditTransaction, Plan
+from .services import adjust_credits
+
+logger = logging.getLogger(__name__)
+
+
+@login_required
+def billing_home(request):
+    plans = Plan.objects.filter(is_active=True)
+    transactions = CreditTransaction.objects.filter(user=request.user)[:25]
+    return render(request, 'billing/billing_home.html', {
+        'plans': plans,
+        'transactions': transactions,
+        'stripe_enabled': bool(settings.STRIPE_PUBLISHABLE_KEY),
+    })
+
+
+@login_required
+@require_POST
+def checkout(request, slug):
+    plan = get_object_or_404(Plan, slug=slug, is_active=True)
+
+    if settings.STRIPE_SECRET_KEY and plan.stripe_price_id:
+        import stripe
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        try:
+            session = stripe.checkout.Session.create(
+                mode='subscription',
+                line_items=[{'price': plan.stripe_price_id, 'quantity': 1}],
+                success_url=request.build_absolute_uri(reverse('billing:billing_home')) + '?upgraded=1',
+                cancel_url=request.build_absolute_uri(reverse('billing:billing_home')),
+                customer_email=request.user.email,
+                client_reference_id=str(request.user.id),
+                metadata={'plan_slug': plan.slug},
+            )
+            return redirect(session.url)
+        except stripe.error.StripeError as exc:
+            logger.exception('Stripe checkout failed')
+            messages.error(request, f'Payment could not be started: {exc.user_message or exc}')
+            return redirect('billing:billing_home')
+
+    # Demo mode: no payment provider configured. Grant the plan's credits
+    # directly so the upgrade flow is fully clickable end-to-end, and say so.
+    request.user.plan = plan
+    request.user.save(update_fields=['plan'])
+    adjust_credits(
+        request.user, plan.monthly_credits, CreditTransaction.Reason.DEMO_TOPUP, job=None,
+        note=f'Demo upgrade to {plan.name} (no payment processor configured)',
+    )
+    messages.success(
+        request,
+        f'Demo mode: connect Stripe to charge real payments. You have been switched to {plan.name} '
+        f'and granted {plan.monthly_credits} credits.',
+    )
+    return redirect('billing:billing_home')
+
+
+@login_required
+@require_POST
+def demo_credit_grant(request):
+    """Lets any signed-in user top up demo credits for testing without payment."""
+    adjust_credits(request.user, 10, CreditTransaction.Reason.DEMO_TOPUP, note='Self-serve demo top-up')
+    messages.success(request, '10 demo credits added to your account.')
+    return redirect('billing:billing_home')
+
+
+@csrf_exempt
+def stripe_webhook(request):
+    if not settings.STRIPE_WEBHOOK_SECRET:
+        return HttpResponseBadRequest('Stripe webhook is not configured.')
+    import stripe
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE', '')
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+    except (ValueError, stripe.error.SignatureVerificationError):
+        return HttpResponseBadRequest('Invalid signature')
+
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        from accounts.models import User
+        user_id = session.get('client_reference_id')
+        plan_slug = (session.get('metadata') or {}).get('plan_slug')
+        user = User.objects.filter(pk=user_id).first()
+        plan = Plan.objects.filter(slug=plan_slug).first()
+        if user and plan:
+            user.plan = plan
+            user.save(update_fields=['plan'])
+            adjust_credits(user, plan.monthly_credits, CreditTransaction.Reason.PURCHASE, note=f'Stripe checkout for {plan.name}')
+
+    return HttpResponse(status=200)

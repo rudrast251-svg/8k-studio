@@ -1,0 +1,91 @@
+{% extends 'studio/dashboard_base.html' %}
+{% block dash_title %}Site editor{% endblock %}
+{% block dash_content %}
+<div class="page-head">
+  <div>
+    <h1>Website editor</h1>
+    <p class="text-dim">Type a command to edit the live homepage — colors, text, hero media, autoplay/mute.</p>
+  </div>
+  <form method="post" action="{% url 'siteeditor:reset' %}" onsubmit="return confirm('Reset the site to defaults?');">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-ghost btn-sm">Reset to defaults</button>
+  </form>
+</div>
+
+<div class="grid-2" style="align-items:flex-start;">
+  <div>
+    <div class="glass card" style="margin-bottom:20px;">
+      <form method="post">
+        {% csrf_token %}
+        <div class="field">
+          <label>Command</label>
+          <textarea name="instruction" class="field-input field-textarea" rows="3" placeholder='e.g. "Change the website colors to black and gold" or "Add this video to the homepage hero section"'></textarea>
+        </div>
+
+        {% if assets %}
+          <div class="field">
+            <label>Optional: apply to this asset (for hero video/image commands)</label>
+            <input type="hidden" name="asset_id" id="id_asset_id">
+            <div class="asset-picker-grid" data-target="#id_asset_id">
+              {% for asset in assets %}
+                <div class="asset-thumb" data-asset-id="{{ asset.id }}">
+                  {% if asset.kind == 'image' %}<img src="{{ asset.file.url }}" alt="">{% else %}<video src="{{ asset.file.url }}" muted></video>{% endif %}
+                  <span class="kind-badge">{{ asset.kind }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary btn-block">Apply to live site</button>
+      </form>
+    </div>
+
+    <div class="glass card" style="margin-bottom:20px;">
+      <h4 style="margin-top:0;">Try a preset</h4>
+      <div class="flex gap-8" style="flex-wrap:wrap;">
+        <button type="button" class="btn btn-sm btn-ghost preset-btn" data-cmd="Change the website colors to black and gold">Black & gold theme</button>
+        <button type="button" class="btn btn-sm btn-ghost preset-btn" data-cmd="Change the website colors to black and violet">Black & violet theme</button>
+        <button type="button" class="btn btn-sm btn-ghost preset-btn" data-cmd="Make the video autoplay silently in the banner">Autoplay silently</button>
+        <button type="button" class="btn btn-sm btn-ghost preset-btn" data-cmd='Change the headline to "Cinematic 8K, in minutes."'>New headline</button>
+      </div>
+    </div>
+
+    <div class="glass card">
+      <h4 style="margin-top:0;">Current theme</h4>
+      <p><span class="color-swatch" style="background:{{ config.background_color }};"></span>Background {{ config.background_color }}</p>
+      <p><span class="color-swatch" style="background:{{ config.primary_color }};"></span>Primary {{ config.primary_color }}</p>
+      <p><span class="color-swatch" style="background:{{ config.accent_color }};"></span>Accent {{ config.accent_color }}</p>
+      <p class="text-faint" style="font-size:0.82rem;">Hero autoplay: {{ config.hero_autoplay }} · muted: {{ config.hero_muted }} · loop: {{ config.hero_loop }}</p>
+    </div>
+
+    {% if history %}
+      <div class="glass card" style="margin-top:20px;">
+        <h4 style="margin-top:0;">Recent commands</h4>
+        {% for h in history %}
+          <div style="padding:10px 0; border-bottom:1px solid var(--panel-border); font-size:0.85rem;">
+            <span style="color:{% if h.success %}#4ade80{% else %}#f87171{% endif %};">{% if h.success %}✓{% else %}✗{% endif %}</span>
+            {{ h.instruction }}
+            <div class="text-faint">{{ h.created_at|timesince }} ago</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="glass card" style="padding:0; overflow:hidden;">
+      <div style="padding:12px 16px; border-bottom:1px solid var(--panel-border); font-size:0.8rem; color:var(--text-faint);">Live preview — this is the real homepage</div>
+      <iframe src="{% url 'corepages:home' %}" style="width:100%; height:720px; border:0; background:#000;"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.preset-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelector('textarea[name=instruction]').value = btn.dataset.cmd;
+  });
+});
+</script>
+{% endblock %}

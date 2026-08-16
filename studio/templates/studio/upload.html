@@ -1,0 +1,88 @@
+{% extends 'studio/dashboard_base.html' %}
+{% block dash_title %}Upload & Enhance{% endblock %}
+{% block dash_content %}
+<div class="page-head">
+  <div>
+    <h1>Upload & Enhance</h1>
+    <p class="text-dim">Upload a photo or video, then describe what you want in plain English.</p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="glass card">
+    <form method="post" enctype="multipart/form-data" id="upload-form">
+      {% csrf_token %}
+      {{ form.library_asset_id }}
+
+      <div class="field">
+        <label>1. Choose media</label>
+        <div class="dropzone">
+          <div class="dz-icon">📤</div>
+          <p style="margin:0;">Drag & drop a photo or video, or click to browse</p>
+          <div class="field-hint">JPG, PNG, WEBP, MP4, MOV, WEBM · up to {{ max_upload_mb }} MB</div>
+          <div class="dz-filename"></div>
+          {{ form.file }}
+        </div>
+        {% for error in form.file.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+      </div>
+
+      {% if library_assets %}
+        <div class="field">
+          <label>...or reuse from your library</label>
+          <div class="asset-picker-grid" data-target="#id_library_asset_id">
+            {% for asset in library_assets %}
+              <div class="asset-thumb" data-asset-id="{{ asset.id }}">
+                {% if asset.kind == 'image' %}<img src="{{ asset.file.url }}" alt="">{% else %}<video src="{{ asset.file.url }}" muted></video>{% endif %}
+                <span class="kind-badge">{{ asset.kind }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if demo_assets %}
+        <div class="field">
+          <label>Or try a demo sample</label>
+          <div class="asset-picker-grid" data-target="#id_library_asset_id">
+            {% for asset in demo_assets %}
+              <div class="asset-thumb" data-asset-id="{{ asset.id }}">
+                {% if asset.kind == 'image' %}<img src="{{ asset.file.url }}" alt="">{% else %}<video src="{{ asset.file.url }}" muted></video>{% endif %}
+                <span class="kind-badge">demo</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="field">
+        <label>2. Describe what you want</label>
+        {{ form.instruction }}
+        {% for error in form.instruction.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        <div class="field-hint">Try: "Upscale to 8K and remove blur" · "Make it cinematic, brighter, and smoother" · "Stabilize and reduce noise"</div>
+      </div>
+
+      {% for error in form.non_field_errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+
+      <button type="submit" class="btn btn-primary btn-block">✨ Enhance with AI ({{ user.credits_balance }} credits available)</button>
+    </form>
+  </div>
+
+  <div class="glass card">
+    <h3 style="margin-top:0;">How it works</h3>
+    <ol style="color:var(--text-dim); padding-left:20px; line-height:2;">
+      <li>Upload a photo or video (or pick one from your library).</li>
+      <li>Type an instruction — our AI parses it into real operations like upscale, denoise, stabilize.</li>
+      <li>Your job joins the processing queue: <span class="badge badge-uploaded">uploaded</span> → <span class="badge badge-processing">processing</span> → <span class="badge badge-completed">completed</span>.</li>
+      <li>You're notified the moment it's done, with a before/after preview and a download button.</li>
+    </ol>
+    <hr class="divider">
+    <h4 style="margin-bottom:10px;">Example instructions</h4>
+    <div>
+      <span class="op-chip">Make this video 8K, cinematic, brighter, and smoother</span>
+      <span class="op-chip">Upscale this photo to 8K and remove blur</span>
+      <span class="op-chip">Reduce noise and restore faces</span>
+      <span class="op-chip">Make it autoplay silently</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

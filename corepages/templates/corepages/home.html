@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load humanize site_extras %}
+{% block content %}
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="fade-up">
+      <span class="hero-eyebrow">✨ Real AI-powered enhancement</span>
+      <h1>{{ site_config.headline|default:"Turn any photo or video into 8K, cinematic quality."|highlight_8k }}</h1>
+      <p class="lead">{{ site_config.subheadline|default:'Upload your media, describe what you want in plain English — "make it 8K, cinematic, brighter" — and let real AI upscaling do the rest.' }}</p>
+      <div class="hero-actions">
+        <a href="{% if user.is_authenticated %}{% url 'studio:upload' %}{% else %}{% url 'accounts:sign_up' %}{% endif %}" class="btn btn-primary">{{ site_config.cta_label|default:"Upload & Enhance Free" }}</a>
+        <a href="#features" class="btn btn-ghost">See how it works</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><b>8K</b><span>Max upscale resolution</span></div>
+        <div class="hero-stat"><b>4</b><span>Enhancement engines</span></div>
+        <div class="hero-stat"><b>&lt;2min</b><span>Typical image turnaround</span></div>
+      </div>
+    </div>
+    <div class="hero-media fade-up">
+      {% if site_config.hero_video %}
+        <video {% if site_config.hero_autoplay %}autoplay{% endif %} {% if site_config.hero_muted %}muted{% endif %} {% if site_config.hero_loop %}loop{% endif %} playsinline src="{{ site_config.hero_video.file.url }}"></video>
+      {% elif site_config.hero_image %}
+        <img src="{{ site_config.hero_image.file.url }}" alt="Hero preview">
+      {% else %}
+        <div class="hero-media-empty">
+          🎬 Your hero video or image goes here.<br>
+          {% if user.is_studio_admin %}Open the <a href="{% url 'siteeditor:editor' %}" style="color:#c9b8ff;">Site Editor</a> and say “add this video to the homepage hero”.{% else %}An 8K Studio showcase clip will appear here soon.{% endif %}
+        </div>
+      {% endif %}
+      <span class="hero-media-badge">Before → After 8K</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head fade-up">
+      <span class="eyebrow">Capabilities</span>
+      <h2>One instruction box. Every enhancement.</h2>
+      <p>Type what you want — our AI parses your instruction into real processing operations.</p>
+    </div>
+    <div class="feature-grid">
+      {% for f in site_config.features %}
+        <div class="glass card card-hover fade-up">
+          <div class="feature-icon">{{ f.icon|default:"✨" }}</div>
+          <h3>{{ f.title }}</h3>
+          <p>{{ f.description }}</p>
+        </div>
+      {% empty %}
+        <div class="glass card card-hover fade-up">
+          <div class="feature-icon">🖼️</div>
+          <h3>Image upscaling to 8K</h3>
+          <p>Sharpen details, reduce noise, restore faces, boost color, and remove backgrounds automatically.</p>
+        </div>
+        <div class="glass card card-hover fade-up">
+          <div class="feature-icon">🎬</div>
+          <h3>Video enhancement</h3>
+          <p>Upscale up to 8K, stabilize shaky footage, smooth motion, improve lighting, and manage audio.</p>
+        </div>
+        <div class="glass card card-hover fade-up">
+          <div class="feature-icon">💬</div>
+          <h3>Plain-English instructions</h3>
+          <p>"Make this brighter and cinematic" — our AI turns your words into a real processing pipeline.</p>
+        </div>
+        <div class="glass card card-hover fade-up">
+          <div class="feature-icon">⚡</div>
+          <h3>Background job queue</h3>
+          <p>Long video jobs run in the background. You're notified the moment they're done.</p>
+        </div>
+        <div class="glass card card-hover fade-up">
+          <div class="feature-icon">🎨</div>
+          <h3>AI website editor</h3>
+          <p>Type "change colors to black and gold" and watch this very page update live.</p>
+        </div>
+        <div class="glass card card-hover fade-up">
+          <div class="feature-icon">📁</div>
+          <h3>Reusable asset library</h3>
+          <p>Every upload and enhanced result is saved so you can reuse it anywhere on your site.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="section-head fade-up">
+      <span class="eyebrow">Pricing</span>
+      <h2>Simple credit-based plans</h2>
+      <p>Every enhancement job costs a small number of credits based on resolution and complexity.</p>
+    </div>
+    <div class="pricing-grid">
+      {% for plan in plans %}
+        <div class="glass card price-card fade-up {% if plan.is_featured %}featured{% endif %}">
+          {% if plan.is_featured %}<span class="price-badge">Most popular</span>{% endif %}
+          <h3>{{ plan.name }}</h3>
+          <p class="text-dim" style="margin-bottom:0;">{{ plan.tagline }}</p>
+          <div class="price-amount">${{ plan.price_usd|floatformat:0 }}<span>/mo</span></div>
+          <p class="text-faint" style="font-size:0.85rem;">{{ plan.monthly_credits }} credits · up to {{ plan.max_resolution }}</p>
+          <ul class="price-features">
+            {% for feature in plan.features %}<li>{{ feature }}</li>{% endfor %}
+          </ul>
+          <a href="{% if user.is_authenticated %}{% url 'billing:checkout' plan.slug %}{% else %}{% url 'accounts:sign_up' %}{% endif %}" class="btn {% if plan.is_featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">
+            {% if user.is_authenticated %}Choose {{ plan.name }}{% else %}Get started{% endif %}
+          </a>
+        </div>
+      {% empty %}
+        <p class="text-center text-faint">Plans are being configured. Check back soon.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section" id="faq">
+  <div class="container" style="max-width:760px;">
+    <div class="section-head fade-up">
+      <span class="eyebrow">FAQ</span>
+      <h2>Frequently asked questions</h2>
+    </div>
+    <div class="glass card fade-up">
+      {% for item in site_config.faqs %}
+        <div class="faq-item">
+          <div class="faq-q">{{ item.question }} <span class="chev">+</span></div>
+          <div class="faq-a"><p>{{ item.answer }}</p></div>
+        </div>
+      {% empty %}
+        <div class="faq-item">
+          <div class="faq-q">Is the 8K upscaling real AI, or just a browser filter? <span class="chev">+</span></div>
+          <div class="faq-a"><p>It's a real external GPU AI provider (Replicate). If no API key is configured yet, the platform runs in a clearly-labeled demo mode using genuine local processing instead of pretending.</p></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">What file types are supported? <span class="chev">+</span></div>
+          <div class="faq-a"><p>Images: JPG, PNG, WEBP. Videos: MP4, MOV, WEBM.</p></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do credits work? <span class="chev">+</span></div>
+          <div class="faq-a"><p>Every plan includes monthly credits. Each job costs credits based on target resolution and requested operations, deducted when you submit and refunded automatically if a job fails.</p></div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="glass card fade-up" style="text-align:center; padding:56px 32px;">
+      <h2 style="margin-bottom:14px;">Ready to see your media in 8K?</h2>
+      <p style="max-width:48ch; margin:0 auto 26px;">Sign up free, upload a photo or clip, and type your first instruction.</p>
+      <a href="{% if user.is_authenticated %}{% url 'studio:upload' %}{% else %}{% url 'accounts:sign_up' %}{% endif %}" class="btn btn-primary">Start enhancing free</a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

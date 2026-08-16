@@ -1,0 +1,38 @@
+{% load static %}
+<header class="navbar">
+  <div class="navbar-inner">
+    <a href="{% url 'corepages:home' %}" class="brand">
+      <span class="brand-mark">8K</span>
+      <span>8K Studio</span>
+    </a>
+
+    <nav class="nav-links">
+      <a href="{% url 'corepages:home' %}#features">Features</a>
+      <a href="{% url 'corepages:home' %}#pricing">Pricing</a>
+      <a href="{% url 'corepages:home' %}#faq">FAQ</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'studio:dashboard' %}">Dashboard</a>
+        {% if user.is_studio_admin %}<a href="{% url 'siteeditor:editor' %}">Site Editor</a>{% endif %}
+      {% endif %}
+    </nav>
+
+    <div class="nav-actions">
+      {% if user.is_authenticated %}
+        <div class="notif-wrap">
+          <button class="notif-btn" type="button" aria-label="Notifications">
+            🔔<span class="notif-dot"></span>
+          </button>
+          <div class="notif-dropdown glass">
+            <div class="notif-list"><div class="notif-empty">Loading…</div></div>
+          </div>
+        </div>
+        <a href="{% url 'studio:upload' %}" class="btn btn-primary btn-sm">Upload</a>
+        <a href="{% url 'accounts:sign_out' %}" class="btn btn-ghost btn-sm">Sign out</a>
+      {% else %}
+        <a href="{% url 'accounts:sign_in' %}" class="btn btn-ghost btn-sm">Sign in</a>
+        <a href="{% url 'accounts:sign_up' %}" class="btn btn-primary btn-sm">Get started free</a>
+      {% endif %}
+      <button class="nav-toggle" type="button" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</header>
