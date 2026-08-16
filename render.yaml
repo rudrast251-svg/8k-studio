@@ -19,10 +19,13 @@ services:
         value: "False"
       - key: PROCESS_JOBS_INLINE
         value: "True"
+      # External Postgres (e.g. a free Neon.tech project), not Render's own
+      # Postgres add-on -- Render's free plan allows only one free database
+      # per account, and a free web service has no persistent disk, so
+      # without an external DB every deploy/restart wipes all data (users,
+      # payments, everything). Paste a real connection string here.
       - key: DATABASE_URL
-        fromDatabase:
-          name: 8k-studio-db
-          property: connectionString
+        sync: false
       - key: SITE_BASE_URL
         sync: false
       - key: REPLICATE_API_TOKEN
@@ -71,14 +74,8 @@ services:
     startCommand: "python manage.py process_jobs --loop"
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: 8k-studio-db
-          property: connectionString
+        sync: false
       - key: REPLICATE_API_TOKEN
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
-
-databases:
-  - name: 8k-studio-db
-    plan: free
