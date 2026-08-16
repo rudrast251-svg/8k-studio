@@ -319,6 +319,8 @@ button { font-family: inherit; }
 .empty-state .dz-icon { font-size: 2.4rem; margin-bottom: 14px; }
 .color-swatch { display: inline-block; width: 18px; height: 18px; border-radius: 6px; border: 1px solid var(--panel-border); vertical-align: -3px; margin-right: 6px; }
 .demo-banner { padding: 14px 18px; border-radius: var(--radius-md); background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); color: #fcd34d; font-size: 0.86rem; margin-bottom: 22px; }
+.upi-pay-card { padding: 32px 28px; }
+.upi-pay-brand { display: flex; align-items: center; gap: 12px; justify-content: center; }
 .divider { height: 1px; background: var(--panel-border); margin: 24px 0; border: none; }
 
 .fade-up { animation: fadeUp 0.6s ease both; }
