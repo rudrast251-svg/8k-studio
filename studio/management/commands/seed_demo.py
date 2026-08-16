@@ -136,8 +136,11 @@ class Command(BaseCommand):
                     '(image demo mode and the site still work fine).'
                 ))
 
-        if not config.hero_video and not config.hero_image and video_asset:
-            config.hero_video = video_asset
+        if not config.hero_video and not config.hero_image:
+            if video_asset:
+                config.hero_video = video_asset
+            elif image_asset:
+                config.hero_image = image_asset
 
         config.features = config.features or [
             {'icon': '🖼️', 'title': 'Image upscaling to 8K', 'description': 'Sharpen details, reduce noise, restore faces, boost color, and remove backgrounds automatically.'},
