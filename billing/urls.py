@@ -13,4 +13,7 @@ urlpatterns = [
     path('upi/<slug:slug>/submit/', views.upi_submit, name='upi_submit'),
     path('demo-credit-grant/', views.demo_credit_grant, name='demo_credit_grant'),
     path('webhook/stripe/', views.stripe_webhook, name='stripe_webhook'),
+    path('pending-payments/', views.pending_payments, name='pending_payments'),
+    path('pending-payments/<int:pk>/approve/', views.approve_payment, name='approve_payment'),
+    path('pending-payments/<int:pk>/reject/', views.reject_payment, name='reject_payment'),
 ]

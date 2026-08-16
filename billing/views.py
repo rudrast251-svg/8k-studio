@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
@@ -10,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .models import CreditTransaction, PaymentRequest, Plan
-from .services import adjust_credits
+from .services import adjust_credits, approve_payment_request, reject_payment_request
 from .upi import build_upi_uri, render_qr_png
 
 logger = logging.getLogger(__name__)
@@ -112,16 +113,56 @@ def upi_submit(request, slug):
         messages.info(request, 'You already have a payment pending review for this plan.')
         return redirect('billing:upi_checkout', slug=plan.slug)
 
-    PaymentRequest.objects.create(
+    payment_request = PaymentRequest.objects.create(
         user=request.user, plan=plan, amount_inr=plan.price_inr,
         upi_ref=request.POST.get('upi_ref', '').strip()[:60],
     )
+
+    from accounts.models import User
+    from studio.models import Notification
+    for admin in User.objects.filter(is_staff=True):
+        Notification.objects.create(
+            user=admin,
+            message=f'💰 New payment to review: {request.user.email} claims Rs.{plan.price_inr:.0f} for {plan.name}.',
+        )
+    logger.info('New payment request #%s from %s for %s (Rs.%s)', payment_request.pk, request.user.email, plan.name, plan.price_inr)
+
     messages.success(
         request,
         f"Thanks! We've received your payment claim for Rs.{plan.price_inr:.0f}. "
         "An admin will verify it and activate your plan shortly.",
     )
     return redirect('billing:billing_home')
+
+
+@staff_member_required
+def pending_payments(request):
+    """A simple, mobile-friendly one-tap review page for UPI payment claims
+    — much faster to use than the full Django admin on a phone."""
+    pending = PaymentRequest.objects.filter(status=PaymentRequest.Status.PENDING).select_related('user', 'plan')
+    recent = PaymentRequest.objects.exclude(status=PaymentRequest.Status.PENDING).select_related('user', 'plan')[:15]
+    return render(request, 'billing/pending_payments.html', {
+        'pending': pending,
+        'recent': recent,
+    })
+
+
+@staff_member_required
+@require_POST
+def approve_payment(request, pk):
+    payment_request = get_object_or_404(PaymentRequest, pk=pk, status=PaymentRequest.Status.PENDING)
+    approve_payment_request(payment_request, request.user)
+    messages.success(request, f'Approved — {payment_request.user.email} now has the {payment_request.plan.name} plan.')
+    return redirect('billing:pending_payments')
+
+
+@staff_member_required
+@require_POST
+def reject_payment(request, pk):
+    payment_request = get_object_or_404(PaymentRequest, pk=pk, status=PaymentRequest.Status.PENDING)
+    reject_payment_request(payment_request, request.user)
+    messages.info(request, f'Rejected payment claim from {payment_request.user.email}.')
+    return redirect('billing:pending_payments')
 
 
 @login_required

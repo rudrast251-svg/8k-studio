@@ -1,0 +1,60 @@
+{% extends 'studio/dashboard_base.html' %}
+{% block dash_title %}Pending payments{% endblock %}
+{% block dash_content %}
+<div class="page-head">
+  <div>
+    <h1>Pending payments</h1>
+    <p class="text-dim">Review UPI payment claims and approve or reject with one tap.</p>
+  </div>
+</div>
+
+{% if pending %}
+  {% for pr in pending %}
+    <div class="glass card" style="margin-bottom:16px;">
+      <div class="flex-between" style="align-items:flex-start; flex-wrap:wrap; gap:16px;">
+        <div>
+          <div style="font-size:1.4rem; font-weight:800;">Rs.{{ pr.amount_inr|floatformat:0 }} <span class="text-faint" style="font-size:0.9rem; font-weight:500;">{{ pr.plan.name }}</span></div>
+          <div style="margin-top:6px;">{{ pr.user.email }}{% if pr.user.username %} · {{ pr.user.username }}{% endif %}</div>
+          {% if pr.upi_ref %}<div class="text-faint" style="font-size:0.85rem; margin-top:4px;">UTR: {{ pr.upi_ref }}</div>{% endif %}
+          <div class="text-faint" style="font-size:0.8rem; margin-top:4px;">{{ pr.created_at|date:"M j, Y H:i" }}</div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <form method="post" action="{% url 'billing:approve_payment' pr.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">✅ Approve</button>
+          </form>
+          <form method="post" action="{% url 'billing:reject_payment' pr.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">✕ Reject</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="empty-state glass card">
+    <div class="dz-icon">✅</div>
+    <p>No pending payments right now.</p>
+  </div>
+{% endif %}
+
+{% if recent %}
+  <h3 style="margin-top:36px;">Recent decisions</h3>
+  <div class="glass card" style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.88rem;">
+      <thead><tr style="text-align:left; color:var(--text-faint);"><th style="padding:8px;">User</th><th style="padding:8px;">Plan</th><th style="padding:8px;">Amount</th><th style="padding:8px;">Status</th><th style="padding:8px;">Date</th></tr></thead>
+      <tbody>
+      {% for pr in recent %}
+        <tr style="border-top:1px solid var(--panel-border);">
+          <td style="padding:8px;">{{ pr.user.email }}</td>
+          <td style="padding:8px;">{{ pr.plan.name }}</td>
+          <td style="padding:8px;">Rs.{{ pr.amount_inr|floatformat:0 }}</td>
+          <td style="padding:8px;"><span class="badge badge-{% if pr.status == 'approved' %}completed{% else %}failed{% endif %}">{{ pr.get_status_display }}</span></td>
+          <td style="padding:8px;">{{ pr.created_at|date:"M j, H:i" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+{% endblock %}

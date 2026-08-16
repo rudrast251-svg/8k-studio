@@ -7,7 +7,10 @@
   <a href="{% url 'studio:job_list' %}" class="{% if request.resolver_match.url_name == 'job_list' or request.resolver_match.url_name == 'job_detail' %}active{% endif %}">Jobs</a>
   <a href="{% url 'studio:library' %}" class="{% if request.resolver_match.url_name == 'library' %}active{% endif %}">Library</a>
   <a href="{% url 'billing:billing_home' %}" class="{% if 'billing' in request.resolver_match.namespace %}active{% endif %}">Billing</a>
-  {% if user.is_studio_admin %}<a href="{% url 'siteeditor:editor' %}" class="{% if 'siteeditor' in request.resolver_match.namespace %}active{% endif %}">Site Editor</a>{% endif %}
+  {% if user.is_studio_admin %}
+    <a href="{% url 'billing:pending_payments' %}" class="{% if request.resolver_match.url_name == 'pending_payments' %}active{% endif %}">Payments{% if pending_payments_count %} ({{ pending_payments_count }}){% endif %}</a>
+    <a href="{% url 'siteeditor:editor' %}" class="{% if 'siteeditor' in request.resolver_match.namespace %}active{% endif %}">Site Editor</a>
+  {% endif %}
 </div>
 <div class="dash-shell">
   <aside class="dash-sidebar">
@@ -24,6 +27,9 @@
       <a href="{% url 'accounts:profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">👤 Profile</a>
       {% if user.is_studio_admin %}
         <hr class="divider">
+        <a href="{% url 'billing:pending_payments' %}" class="{% if request.resolver_match.url_name == 'pending_payments' %}active{% endif %}">
+          💰 Pending payments{% if pending_payments_count %} <span class="badge badge-processing" style="margin-left:4px;">{{ pending_payments_count }}</span>{% endif %}
+        </a>
         <a href="{% url 'siteeditor:editor' %}" class="{% if 'siteeditor' in request.resolver_match.namespace %}active{% endif %}">🎨 Site editor</a>
         <a href="{% url 'admin:index' %}">🛠️ Admin panel</a>
       {% endif %}

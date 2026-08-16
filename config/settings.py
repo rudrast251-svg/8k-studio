@@ -61,6 +61,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'siteeditor.context_processors.site_config',
                 'studio.context_processors.studio_globals',
+                'billing.context_processors.pending_payments_count',
             ],
         },
     },
